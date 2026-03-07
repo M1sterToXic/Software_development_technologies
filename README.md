@@ -4,3 +4,7 @@
 
 # Test Float & Double
 <img width="1469" height="915" alt="Снимок экрана 2026-03-07 170750" src="https://github.com/user-attachments/assets/1e04e50e-fc07-4657-8d4f-01aaa3c4cc9c" />
+
+# Команда для компиляции и запуска
+gcc -O3 -fopenmp -march=native Lab3_level3.c -o lab3 -lopenblas -lm
+./lab3
