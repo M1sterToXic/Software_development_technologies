@@ -2,7 +2,6 @@ import subprocess
 import psycopg2
 import time
 
-# Try to connect to the DB with retries
 conn = None
 for i in range(10):
     try:
