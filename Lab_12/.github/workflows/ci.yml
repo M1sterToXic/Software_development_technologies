@@ -2,9 +2,9 @@ name: BLAS CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, lab_12 ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, lab_12 ]
 
 jobs:
   build-and-test:
