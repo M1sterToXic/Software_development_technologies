@@ -2,19 +2,16 @@ CC = gcc
 CFLAGS = -O3 -Wall -fopenmp
 LIBS = -lopenblas -lm
 
-TARGET = blas_test
-SRC = Lab3_level3.c
+all: blas_test
 
-all: $(TARGET)
+blas_test: main.c
+	$(CC) $(CFLAGS) main.c -o blas_test $(LIBS)
 
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LIBS)
+test: blas_test
+	./blas_test
 
-test: $(TARGET)
-	./$(TARGET) --interface
-
-perf: $(TARGET)
-	./$(TARGET) --performance
+test_fail: blas_test
+	./blas_test --fail
 
 clean:
-	rm -f $(TARGET)
+	rm -f blas_test

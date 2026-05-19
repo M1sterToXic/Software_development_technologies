@@ -1,0 +1,23 @@
+name: Lab12_CI
+
+on:
+  push:
+    branches: [ lab_12, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install OpenBLAS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
+
+      - name: Build
+        run: make -C Lab_12/
+
+      - name: Run Tests
+        run: make -C Lab_12/ test_fail
