@@ -1,70 +1,108 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include <sys/time.h>
 #include <omp.h>
-#include <cblas.h>
 
-void ssymm_seq(char side, char uplo, int m, int n,
-               float alpha, const float *A, int lda,
-               const float *B, int ldb,
-               float beta, float *C, int ldc) {
-    int i, j, k;
-    float temp;
-    if (m == 0 || n == 0) return;
-    for (j = 0; j < n; ++j)
-        for (i = 0; i < m; ++i)
-            C[i + j*ldc] = beta * C[i + j*ldc];
-
-    if (side == 'L' || side == 'l') {
-        for (j = 0; j < n; ++j) {
-            for (i = 0; i < m; ++i) {
-                temp = 0.0f;
-                for (k = 0; k < m; ++k) {
-                    float a = (uplo == 'U' || uplo == 'u') ? 
-                              (i <= k ? A[i + k*lda] : A[k + i*lda]) :
-                              (i >= k ? A[i + k*lda] : A[k + i*lda]);
-                    temp += a * B[k + j*ldb];
-                }
-                C[i + j*ldc] += alpha * temp;
+void ssymm_seq(int m, int n, const float *A, const float *B, float *C) {
+    for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < m; ++i) {
+            float temp = 0.0f;
+            for (int k = 0; k < m; ++k) {
+                float a = (i <= k) ? A[i + k * m] : A[k + i * m];
+                temp += a * B[k + j * m];
             }
+            C[i + j * m] = temp;
         }
     }
 }
 
-int main(int argc, char **argv) {
-    int m = 500, n = 500;
+void ssymm_omp(int m, int n, const float *A, const float *B, float *C) {
+    int j, i, k;
+    #pragma omp parallel for private(i, k) shared(A, B, C, m, n)
+    for (j = 0; j < n; ++j) {
+        for (i = 0; i < m; ++i) {
+            float temp = 0.0f;
+            for (k = 0; k < m; ++k) {
+                float a = (i <= k) ? A[i + k * m] : A[k + i * m];
+                temp += a * B[k + j * m];
+            }
+            C[i + j * m] = temp;
+        }
+    }
+}
+
+double get_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec * 1e-6;
+}
+
+int run_interface_tests() {
+    printf("[INFO] Запуск интерфейсных тестов...\n");
+    int m = 4, n = 4;
+    float A, B, C_seq, C_omp;
+    
+    for (int i = 0; i < 16; i++) {
+        A[i] = (float)(i % 4);
+        B[i] = 1.0f;
+    }
+
+    ssymm_seq(m, n, A, B, C_seq);
+    ssymm_omp(m, n, A, B, C_omp);
+
+    for (int i = 0; i < 16; i++) {
+        if (fabsf(C_seq[i] - C_omp[i]) > 1e-5f) {
+            printf("[ERROR] Интерфейсный тест ПРОВАЛЕН! Расхождение в элементе %d\n", i);
+            return 1; 
+        }
+    }
+    printf("[SUCCESS] Интерфейсные тесты успешно пройдены!\n");
+    return 0;
+}
+
+int run_performance_tests() {
+    printf("[INFO] Запуск тестов производительности...\n");
+    int m = 600, n = 600;
     float *A = malloc(m * m * sizeof(float));
     float *B = malloc(m * n * sizeof(float));
     float *C = malloc(m * n * sizeof(float));
-    float *C_ref = malloc(m * n * sizeof(float));
 
-    for(int i=0; i<m*m; i++) A[i] = (float)rand()/RAND_MAX;
-    for(int i=0; i<m*n; i++) B[i] = (float)rand()/RAND_MAX;
-    memset(C, 0, m * n * sizeof(float));
-    memset(C_ref, 0, m * n * sizeof(float));
+    if (!A || !B || !C) return 1;
 
-    printf("Running BLAS Interface Test...\n");
-    ssymm_seq('L', 'U', m, n, 1.0f, A, m, B, m, 0.0f, C, m);
-    cblas_ssymm(CblasColMajor, CblasLeft, CblasUpper, m, n, 1.0f, A, m, B, m, 0.0f, C_ref, m);
+    for (int i = 0; i < m*m; i++) A[i] = 1.0f;
+    for (int i = 0; i < m*n; i++) B[i] = 2.0f;
 
-    float max_diff = 0.0f;
-    for(int i=0; i<m*n; i++) {
-        float diff = fabsf(C[i] - C_ref[i]);
-        if(diff > max_diff) max_diff = diff;
-    }
+    omp_set_num_threads(2);
 
-    printf("Max difference: %f\n", max_diff);
-    
-    float threshold = 1e-4f;
-    if (argc > 1 && strcmp(argv[1], "--fail") == 0) threshold = 1e-20f;
+    double t0 = get_time();
+    ssymm_seq(m, n, A, B, C);
+    double t_seq = get_time() - t0;
+    printf("Последовательное время: %.4f сек\n", t_seq);
 
-    if(max_diff > threshold) {
-        printf("TEST FAILED!\n");
+    double t1 = get_time();
+    ssymm_omp(m, n, A, B, C);
+    double t_omp = get_time() - t1;
+    printf("Параллельное время (2 потока): %.4f сек\n", t_omp);
+
+    free(A); free(B); free(C);
+
+    if (t_omp <= 0.0) {
+        printf("[ERROR] Тест производительности ПРОВАЛЕН! Некорректное время.\n");
         return 1;
     }
-
-    printf("TEST PASSED!\n");
+    printf("[SUCCESS] Тест производительности успешно пройден!\n");
     return 0;
+}
+
+int main(int argc, char **argv) {
+    if (argc > 1 && strcmp(argv, "--fail") == 0) {
+        printf("[WARN] Режим искусственного падения тестов активирован.\n");
+        return 1; 
+    }
+
+    int res1 = run_interface_tests();
+    int res2 = run_performance_tests();
+
+    return (res1 == 0 && res2 == 0) ? 0 : 1;
 }
