@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <sys/time.h>
 #include <omp.h>
@@ -54,7 +55,7 @@ int run_interface_tests() {
     for (int i = 0; i < 16; i++) {
         if (fabsf(C_seq[i] - C_omp[i]) > 1e-5f) {
             printf("[ERROR] Интерфейсный тест ПРОВАЛЕН! Расхождение в элементе %d\n", i);
-            return 1; 
+            return 1;
         }
     }
     printf("[SUCCESS] Интерфейсные тесты успешно пройдены!\n");
