@@ -17,7 +17,9 @@ jobs:
           sudo apt-get install -y libopenblas-dev gcc make
 
       - name: Build
-        run: make -C Lab_12/
+        working-directory: ./Lab_12
+        run: make all
 
-      - name: Run Tests
-        run: make -C Lab_12/ test
+      - name: Run Interface Test
+        working-directory: ./Lab_12
+        run: make test
