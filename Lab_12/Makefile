@@ -1,20 +1,7 @@
-CC = gcc
-CFLAGS = -O3 -Wall -fopenmp
-LIBS = -lopenblas -lm
+all: blas_test
 
-# Указываем пути явно, чтобы не путать с папкой OpenBLAS в корне
-TARGET = blas_test
-
-all: $(TARGET)
-
-$(TARGET): main.c
-	$(CC) $(CFLAGS) main.c -o $(TARGET) $(LIBS)
-
-test: $(TARGET)
-	./$(TARGET)
-
-test_fail: $(TARGET)
-	./$(TARGET) --fail
+blas_test: main.c
+	gcc -O3 -Wall -fopenmp main.c -o blas_test -lm
 
 clean:
-	rm -f $(TARGET)
+	rm -f blas_test
