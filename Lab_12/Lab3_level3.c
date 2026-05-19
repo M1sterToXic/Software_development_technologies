@@ -260,7 +260,7 @@ void random_matrix_double(int m, int n, double *mat, int lda) {
 int validate_float(int m, int n, float *C, float *C_ref, int ldc) {
     for (int j = 0; j < n; ++j) {
         for (int i = 0; i < m; ++i) {
-            if (fabs(C[i + j*ldc] - C_ref[i + j*ldc]) > 1e-4) {
+            if (fabs(C[i + j*ldc] - C_ref[i + j*ldc]) > 1e-20) {
                 printf("Validation failed at (%d,%d): My=%.6f, Ref=%.6f\n", i, j, C[i + j*ldc], C_ref[i + j*ldc]);
                 return 0;
             }
